@@ -4,13 +4,15 @@
 
 Allowance lets an AI shopping agent spend real money through PayPal, but only inside a mandate you signed. You write the rules in plain English. A model drafts them as a policy, code cross-checks the draft against your words, you sign it, and PayPal reserves the budget. The agent shops, and every cart it proposes passes a deterministic **spend gate** that re-prices it from the merchant's catalog and checks your mandate. The gate then pays through PayPal, asks you, or refuses.
 
-**▶️ [Open the live app](https://parasadlakha.github.io/allowance/app/)** (runs in your browser on GitHub Pages; real PayPal sandbox hold and approvals, no setup) · **🎬 [Demo video, 2:41](docs/video/Allowance-demo.mp4)** · [26-second teaser](docs/video/Allowance-teaser.mp4) · [Slides (PDF)](docs/slides/Allowance-slides.pdf) · [Slides (PPTX, with speaker notes)](docs/slides/Allowance-slides.pptx) · [Project page](https://parasadlakha.github.io/allowance/) · [Market brief](docs/market-brief.html) · [Research brief](docs/research-brief.html)
+**▶️ [Open the live app](https://parasadlakha.github.io/allowance/app/)** (runs in your browser on GitHub Pages; real PayPal sandbox hold and approvals, no setup) · **🎬 [Demo video, 2:41](docs/video/Allowance-demo.mp4)** · [26-second teaser](docs/video/Allowance-teaser.mp4) · [Slides (PDF)](docs/slides/Allowance-slides.pdf) · [Slides (PPTX, with speaker notes)](docs/slides/Allowance-slides.pptx) · [Project page](https://parasadlakha.github.io/allowance/) · [Market brief](https://parasadlakha.github.io/allowance/market-brief.html) · [Research brief](https://parasadlakha.github.io/allowance/research-brief.html)
 
 ![A real errand on the PayPal sandbox: the agent's proposals and the gate's verdicts](docs/img/errand.png)
 
 *A real errand on the PayPal sandbox. The agent bought paper and pens within the mandate (approved, captured from the PayPal hold). The coffee page said $18 but checkout charges $24, so the gate escalated it to the owner instead of paying.*
 
 Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/) by **Paras Adlakha** and **Harshita Adlakha**.
+
+**Contents:** [The hackathon](#the-hackathon) · [The problem](#the-problem) · [What it does](#what-allowance-does) · [Live app](#live-app) · [How one errand works](#how-one-errand-is-handled) · [The gate](#the-spend-gate) · [Mandates](#mandates-drafted-by-a-model-checked-by-code-signed-by-you) · [PayPal](#how-paypal-is-used) · [AI](#how-ai-is-used) · [Architecture](#architecture) · [API](#the-api) · [Guardrails](#guardrails) · [Eval](#eval-same-errands-three-agents) · [Real numbers](#real-numbers) · [Data](#data) · [Tests](#tests) · [Run it](#run-it-yourself) · [Layout](#repository-layout) · [What we learned](#what-we-learned) · [Limitations](#limitations-and-roadmap) · [What is new](#what-is-new-in-this-hackathon) · [LLM usage](#llm-usage) · [Reproducibility](#reproducibility-checklist) · [Thank you](#thank-you) · [Team](#team) · [References](#references) · [Licence](#licence)
 
 ---
 
@@ -32,7 +34,7 @@ Built for the [PayPal AI Hackathon](https://paypalaihackathon.devpost.com/) by *
 | Meaningfully integrate PayPal | Orders v2 (authorize), partial captures from an authorization, PayPal Checkout via the JS SDK, the **PayPal Agent Toolkit** (`pay_order`, `get_order`, `create_shipment_tracking`, `create_refund`, `list_transactions`, and `create_order` for the baseline agents), Vault v3 auto-detected. All on the sandbox, with real API calls ([details](#how-paypal-is-used)) |
 | Meaningfully incorporate AI | Gemini drafts mandates, runs the shopping agent with tool calling, and decides refunds ([details](#how-ai-is-used)) |
 | A working prototype judges can run | [Live app on GitHub Pages](https://parasadlakha.github.io/allowance/app/), no setup. Full server: [Run it yourself](#run-it-yourself) |
-| Sufficient documentation | This README, the [market brief](docs/market-brief.html), the [research brief](docs/research-brief.html), slides with speaker notes |
+| Sufficient documentation | This README, the [market brief](https://parasadlakha.github.io/allowance/market-brief.html), the [research brief](https://parasadlakha.github.io/allowance/research-brief.html), slides with speaker notes |
 | Public open-source repo with a licence | MIT, [LICENSE](LICENSE) |
 | Video under 3 minutes | [docs/video/Allowance-demo.mp4](docs/video/Allowance-demo.mp4), 2:41, recorded against the sandbox |
 
@@ -75,7 +77,20 @@ Industry agrees on the shape of the fix. Google's AP2, built with PayPal, Master
 | 05 | **Ledger and aftercare** | Every proposal, verdict, rule and PayPal ID in an **AG Grid** ledger. The merchant ships and tracking is posted to PayPal. Report a problem and an aftercare model proposes a fair refund, which code bounds to the refundable amount. | Agent Toolkit `create_shipment_tracking`, `create_refund`, `list_transactions`. |
 | ⇄ | **What if?** | Run the same errand with the PayPal Agent Toolkit's `create_order` and `pay_order` and no gate, in shadow mode (nothing is charged), and see which orders would have broken your mandate. | Toolkit tool schemas, shadow mode. |
 
-### Two ways to run it
+---
+
+## Live app
+
+**[parasadlakha.github.io/allowance/app](https://parasadlakha.github.io/allowance/app/)** is the full app running in your browser on GitHub Pages, with no install, on the same engine, gate, mandate and agent code as the server.
+
+- **Try it with no key:** draft and sign a mandate (rule parser), approve a **real PayPal sandbox hold**, send an errand, and watch a deterministic, deliberately gullible scripted agent walk into every trap while the gate catches it. Approve an escalated order in **real PayPal Checkout**.
+- **Use your own model:** click **model ⚙** and paste a Gemini key ([free at AI Studio](https://aistudio.google.com/apikey)) or any OpenAI-compatible key. The key stays in this browser's local storage and is sent only to the model provider. Mandates are then drafted by the model and errands are run by a real tool-calling agent.
+- **Replay the recorded session:** 02 Errand → *Replay a run* plays our real sandbox session step by step (gated errand, the same errand with no gate, and an owner-approved escalation), with the real PayPal capture IDs in the ledger.
+- **What is simulated:** gate-approved captures against the hold, shipment tracking and refunds need the PayPal client **secret**, which a static page must never hold. On Pages they are simulated and labelled `SIM-`; the server does them for real (see [Real numbers](#real-numbers)).
+
+To approve the PayPal popups you need a PayPal **sandbox personal** account (developer.paypal.com → Testing Tools → Sandbox Accounts).
+
+### Pages and server, side by side
 
 | | **GitHub Pages** ([open](https://parasadlakha.github.io/allowance/app/)) | **Server** (`npm start`) |
 |---|---|---|
@@ -197,6 +212,24 @@ flowchart LR
 
 One codebase, two hosts. The server ([`server/server.mjs`](server/server.mjs), zero-framework Node) serves the JSON API, the app and the storefronts. `npm run pages` copies the app and the engine into `docs/app/`, where [`static-api.mjs`](scripts/pages/static-api.mjs) runs the same routes in the page on the same modules. Only three files are swapped: `crypto.mjs` (a synchronous SHA-256/HMAC, checked against `node:crypto`), `llm.mjs` (calls the model from the browser with the visitor's key) and `paypal.mjs` (no secret: SIM- captures, toolkit schemas for the what-if agent).
 
+## The API
+
+The same routes are served by [`server/server.mjs`](server/server.mjs) under `/api` and, in the Pages build, by [`scripts/pages/static-api.mjs`](scripts/pages/static-api.mjs) inside the page.
+
+| Route | What it does |
+|---|---|
+| `GET /config` | PayPal mode and public client ID, model, merchants, categories |
+| `POST /mandates/compile` | Plain English → draft policy (model, then `normalize` + `crossCheck`), with warnings |
+| `POST /mandates` · `GET /mandates` | Sign a policy (HMAC) · list mandates with signature check and spend this period |
+| `POST /mandates/:id/hold` · `POST /mandates/:id/fund` | Create the PayPal `AUTHORIZE` order when the owner clicks · authorize it and fund the mandate |
+| `POST /errands` · `GET /runs/:id?since=n` · `GET /runs` | Start an errand (`gated`, or `naive` what-if) · stream its trace · list past runs for replay |
+| `GET /orders` | The ledger: every proposal, verdict, rule codes, PayPal ids, shipment, refunds |
+| `GET /asks` · `POST /asks/:id/order` · `POST /asks/:id/approved` · `POST /asks/:id/decline` | Escalations · create the PayPal order · capture after the owner approves (Agent Toolkit `pay_order`) · decline |
+| `POST /orders/:ref/aftercare` | Complaint → model-proposed refund, clamped by code → Agent Toolkit `create_refund` |
+| `GET /reconcile` | Ledger vs Agent Toolkit `list_transactions` |
+| `GET /eval` | The eval results |
+| `GET /shop/:id` | A merchant storefront as an agent would read it (on Pages: `shop/<id>.html`) |
+
 ## Guardrails
 
 - **The model never touches money.** The gated agent's only spending tool is `propose_cart`. Payment calls are made by code after the gate approves.
@@ -279,6 +312,18 @@ npm test
 25 unit tests. [test/gate.test.mjs](test/gate.test.mjs) (22) covers every gate rule (approve, escalate, refuse paths), catalog re-pricing, payee matching, subscriptions, categories, quantity, per-order and period budgets, duplicates, tampered and expired mandates, unknown SKUs and mixed carts, agent feedback carrying no internals, `normalize()` clamping hostile drafts, the rule parser, `crossCheck()` reverting invented permissions, search ordering and page sanitising. [test/pages.test.mjs](test/pages.test.mjs) checks the Pages build: the browser SHA-256/HMAC shim matches `node:crypto`, a server-signed mandate verifies with it, and storefronts render with injected lines marked. `scripts/media/pages-test.mjs` runs the Pages build end to end against the PayPal sandbox (hold → errand → escalation → PayPal approval).
 
 ---
+
+## Data
+
+| Data | What it is | Where |
+|---|---|---|
+| Eval results | 36 runs (12 errands × 3 conditions): per-run outcome, dollars outside the mandate (hard vs skipped approval), rule codes, every would-be payment, the agent's report | [`data/eval-results.json`](data/eval-results.json) |
+| Eval log | one line per run, as printed | [`data/eval-log.txt`](data/eval-log.txt) |
+| Recorded sandbox session | the session in the video and the live app's replay: mandate, PayPal hold, runs with every trace event, orders with real PayPal capture, tracker and refund ids (buyer email removed) | [`data/demo-session.json`](data/demo-session.json) |
+| Merchants and products | five fictional sandbox shops: authoritative prices, page text, the planted traps | [`core/catalog.mjs`](core/catalog.mjs) |
+| Errands and mandates used in the eval | task text, attack, expected outcome, mandate per errand | [`scripts/eval.mjs`](scripts/eval.mjs) |
+
+No real people, merchants or payment details are in the data. All PayPal ids are sandbox ids.
 
 ## Run it yourself
 
@@ -363,13 +408,15 @@ render.yaml         optional hosted server
 - The eval is one run per cell on one model family. Next: repeats, more models, and a held-out attack set.
 - One approver (the owner). Teams need roles (requester, approver, finance).
 
-## Pre-existing components
+## What is new in this hackathon
+
+All code in `core/`, `server/`, `public/`, `scripts/` and `test/`, the eval and its results, the recorded sandbox session and all media were produced during the hackathon, 9–10 November 2026. The idea of a deterministic gate around an untrusted model carries over from our earlier project Overture (a disclosure gate for networking agents); here it guards money instead of words.
+
+**Pre-existing components:**
 
 - The media scripts (`render.mjs`, `pdf.mjs`, the recorder and video-cutter pattern) were adapted from our earlier hackathon projects (Overture, Spoke).
 - Third-party open source, used unchanged: `@paypal/agent-toolkit` (ISC), `openai` Node SDK (Apache-2.0), AG Grid Community (MIT, via CDN), Puppeteer, pptxgenjs, sharp (media only).
-- Everything else, including the gate, mandates, agent, engine, shops, server, app, Pages build, eval and media, was written during the hackathon, 9–10 November 2026.
-
-## AI use
+## LLM usage
 
 We used an AI coding assistant to help write code, tests, scripts, HTML pages and parts of this README, and to search the literature and the market. The product idea, the design decisions (the proposal-only agent, the hold-as-budget model, the cross-check, the eval's two-part metric) and every number in this README are ours. We checked each against the running app, the sandbox or the eval output. The models in the product itself are Gemini, as described above, and the narration in the video is edge-tts.
 
@@ -398,7 +445,7 @@ To **PayPal's developer relations team**, Jo Franchetti, Eddie Jaoude and Marco 
 - Shayoni, R. K. et al. (2026). *NetInjectBench: Benchmarking Indirect Prompt Injection in Tool-Using LLM Agents for Network Operations.* arXiv.
 - Google (2025). *Agent Payments Protocol (AP2)*: Intent, Cart and Payment Mandates.
 - PayPal (2025–26). [*Agentic Commerce Services: Agent Ready and Store Sync*](https://www.prnewswire.com/news-releases/paypal-launches-agentic-commerce-services-to-power-ai-driven-shopping-302596548.html); [*PayPal Agent Toolkit*](https://github.com/paypal/agent-toolkit); [*WebMCP for Store Sync merchants*](https://developer.paypal.com/community/blog/WebMCP_PayPal_Agent_Ready/).
-- Morgan Stanley (Dec 2025), McKinsey (Oct 2025), Bain (Dec 2025) agentic commerce forecasts (see the [market brief](docs/market-brief.html)).
+- Morgan Stanley (Dec 2025), McKinsey (Oct 2025), Bain (Dec 2025) agentic commerce forecasts (see the [market brief](https://parasadlakha.github.io/allowance/market-brief.html)).
 
 ## Licence
 
