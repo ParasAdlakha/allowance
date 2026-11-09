@@ -4,13 +4,16 @@
   "private": true,
   "description": "Give your AI agent an allowance, not your wallet: signed spending mandates, a deterministic spend gate and PayPal for AI shopping agents.",
   "type": "module",
-  "engines": { "node": ">=20" },
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
     "start": "node server/server.mjs",
     "dev": "node --watch server/server.mjs",
     "test": "node --test test/*.test.mjs",
     "eval": "node scripts/eval.mjs",
-    "check:paypal": "node scripts/check-paypal.mjs"
+    "check:paypal": "node scripts/check-paypal.mjs",
+    "pages": "node scripts/build-pages.mjs"
   },
   "dependencies": {
     "@paypal/agent-toolkit": "^1.11.0",

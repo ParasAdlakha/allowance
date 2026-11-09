@@ -12,13 +12,13 @@ Copy-ready answers for the Devpost form, the video, and social posts. Figures ar
 
 **Team:** Paras Adlakha, Harshita Adlakha
 
-**Try it:** https://allowance.onrender.com/app/ (PayPal sandbox; see "Testing instructions")
+**Try it:** https://parasadlakha.github.io/allowance/app/ (runs in the browser on GitHub Pages; PayPal sandbox; see "Testing instructions")
 
 **Repository:** https://github.com/ParasAdlakha/allowance (MIT; mirror: https://github.com/HarshitaAdlakha/allowance)
 
 **Video:** _YouTube link (public, under 3 minutes)_
 
-**Built with:** PayPal Orders v2 (authorize + partial capture), PayPal JavaScript SDK, PayPal Agent Toolkit (`@paypal/agent-toolkit`), PayPal Vault v3, PayPal Refunds, PayPal Shipment Tracking, PayPal Transaction Search, PayPal Sandbox, Google Gemini (gemini-3.5-flash / flash-lite via the OpenAI-compatible API), OpenAI Node SDK, AG Grid, Render, Node.js, JavaScript, HTML/CSS
+**Built with:** PayPal Orders v2 (authorize + partial capture), PayPal JavaScript SDK, PayPal Agent Toolkit (`@paypal/agent-toolkit`), PayPal Vault v3, PayPal Refunds, PayPal Shipment Tracking, PayPal Transaction Search, PayPal Sandbox, Google Gemini (gemini-3.5-flash / flash-lite via the OpenAI-compatible API), OpenAI Node SDK, AG Grid, GitHub Pages, Node.js, JavaScript, HTML/CSS
 
 ### About the project
 
@@ -53,7 +53,7 @@ A zero-framework Node server (`server/server.mjs`) and vanilla JS app. `core/gat
 - Real money movement on the sandbox: holds, partial captures, an owner-approved checkout, tracking and refunds, all tied to gate decisions.
 - The model is never trusted with a price or a payee.
 - A cross-check that caught the model loosening rules, on real runs.
-- 22 unit tests and a three-condition eval.
+- 25 unit tests and a three-condition eval.
 
 **What we learned**
 
@@ -77,7 +77,7 @@ The model resisted every planted instruction (quantity injection, payee redirect
 
 ### Testing instructions
 
-- **Hosted:** open https://allowance.onrender.com/app/ (the free instance may take ~30 s to wake). 01 Mandate → *Draft policy* → *Sign* → click **PayPal** and log in with the sandbox buyer below → 02 Errand → *Send agent* → 03 Asks → approve in PayPal → 04 Ledger → *Report problem*.
+- **Hosted (no setup):** open https://parasadlakha.github.io/allowance/app/. Replay the recorded sandbox session under 02 Errand → *Replay a run*, or click **model ⚙** to add a Gemini key and run your own errands. In the browser build the PayPal hold and approvals are real sandbox payments; automatic captures and refunds are simulated (they need the server secret). 01 Mandate → *Draft policy* → *Sign* → click **PayPal** and log in with the sandbox buyer below → 02 Errand → *Send agent* → 03 Asks → approve in PayPal → 04 Ledger → *Report problem*.
 - **Sandbox buyer (test only):** _email / password supplied in the private testing field of the form_
 - **Locally:** `git clone … && npm ci && cp .env.example .env && npm start`. No keys gives simulated PayPal and a scripted agent. Add PayPal sandbox and Gemini keys for the real thing (README, "Run it yourself").
 

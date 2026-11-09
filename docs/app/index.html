@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Allowance: give your AI agent an allowance, not your wallet</title>
+<meta name="description" content="Signed spending mandates, a deterministic spend gate and PayPal for AI shopping agents.">
+<link rel="icon" href="icon.svg">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
+<script src="https://cdn.jsdelivr.net/npm/ag-grid-community@33.3.2/dist/ag-grid-community.min.js"></script>
+</head>
+<body>
+<div style="background:#15130f;color:#d9d4c6;font:500 13px/1.45 'Inter Tight',system-ui,sans-serif;padding:8px 16px;text-align:center">Live on GitHub Pages: the gate, mandates and agent run in your browser. The PayPal hold and your approvals are real sandbox payments; automatic captures and refunds need the server's secret, so they are simulated here and marked SIM. Click <b>model ⚙</b> to use your own Gemini key, or replay the recorded sandbox session under 02 Errand. <a style="color:#9be3b8" href="https://github.com/ParasAdlakha/allowance#run-it-yourself">Run the full version</a></div>
+<header class="top">
+  <div class="brand"><div class="mark">A$</div>Allowance <small>give your agent an allowance, not your wallet</small></div>
+  <div class="badges" id="badges"></div>
+</header>
+<div class="layout">
+  <nav class="side" id="nav">
+    <button data-tab="mandate" class="on"><span class="n">01</span>Mandate</button>
+    <button data-tab="errand"><span class="n">02</span>Errand</button>
+    <button data-tab="asks"><span class="n">03</span>Asks <span class="count" id="askCount" hidden>0</span></button>
+    <button data-tab="ledger"><span class="n">04</span>Ledger</button>
+    <button data-tab="eval"><span class="n">05</span>Eval</button>
+    <button data-tab="shops"><span class="n">06</span>Shops</button>
+    <div class="foot">PayPal sandbox only. Merchants are fictional.<br><a href="https://github.com/ParasAdlakha/allowance" target="_blank">Source</a></div>
+  </nav>
+  <main id="main"></main>
+</div>
+<div id="modal"></div>
+<script>window.ALLOWANCE_STATIC = true;</script>
+<script src="app.js"></script>
+</body>
+</html>

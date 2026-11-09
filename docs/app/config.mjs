@@ -1,0 +1,1 @@
+export default {"paypal_client_id":"BAAnr5LWSUUzuEqamR5V_Wb__3smnHUAyCvfHOy7xdC5aHnX52V6rxin81kcKyRe6yzW_5uq_pp2-S69ug"};

@@ -1,6 +1,18 @@
-// Allowance web app. Vanilla JS; talks to the Allowance server.
-const API = (p, opt = {}) => fetch('/api' + p, { headers: { 'Content-Type': 'application/json' }, ...opt, body: opt.body ? JSON.stringify(opt.body) : undefined })
-  .then(async (r) => { const d = await r.json().catch(() => ({})); if (!r.ok) throw new Error(d.error || r.statusText); return d; });
+// Allowance web app. Vanilla JS. Talks to the Allowance server, or, in the GitHub Pages
+// build (window.ALLOWANCE_STATIC), to the same handlers running in the page.
+const STATIC = !!window.ALLOWANCE_STATIC;
+let staticApi = null;
+const API = async (p, opt = {}) => {
+  if (STATIC) {
+    staticApi ||= await (await import('./static-api.mjs')).handler();
+    return staticApi(opt.method || 'GET', p, opt.body);
+  }
+  const r = await fetch('/api' + p, { headers: { 'Content-Type': 'application/json' }, ...opt, body: opt.body ? JSON.stringify(opt.body) : undefined });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.error || r.statusText);
+  return d;
+};
+const simNote = (id) => (String(id || '').startsWith('SIM-') ? ' <span class="chip" title="Captures need the PayPal secret, which a static page cannot hold. Run the server for real captures.">simulated on Pages</span>' : '');
 const $ = (s, el = document) => el.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const usd = (n) => '$' + Number(n || 0).toFixed(2);
@@ -37,7 +49,8 @@ function sdk(intent) {
 async function boot() {
   S.config = await API('/config');
   const b = $('#badges');
-  b.innerHTML = `<span class="badge ${S.config.paypal ? 'live' : ''}">PayPal ${S.config.paypal ? S.config.paypal_env : 'simulated'} · ${S.config.mode}</span><span class="badge ${S.config.llm ? 'live' : ''}">model: ${esc(S.config.model)}</span>`;
+  b.innerHTML = `<span class="badge ${S.config.paypal ? 'live' : ''}">PayPal ${S.config.paypal ? S.config.paypal_env : 'simulated'} · ${S.config.mode}</span><span class="badge ${S.config.llm ? 'live' : ''}" id="modelBadge" ${STATIC ? 'style="cursor:pointer" title="Use your own Gemini key"' : ''}>model: ${esc(S.config.model)}${STATIC ? ' ⚙' : ''}</span>`;
+  if (STATIC) $('#modelBadge').onclick = modelModal;
   $('#nav').addEventListener('click', (e) => { const t = e.target.closest('button[data-tab]'); if (t) go(t.dataset.tab); });
   await refreshMandates();
   refreshAskCount(); setInterval(refreshAskCount, 4000);
@@ -132,12 +145,21 @@ async function renderFundButtons(m, el) {
   const paypal = await sdk('authorize');
   paypal.Buttons({
     style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'paypal' },
-    createOrder: async () => (await API(`/mandates/${m.id}/hold`, { method: 'POST' })).id,
-    onApprove: async (data) => {
-      el.innerHTML = '<div class="mono">authorizing hold…</div>';
-      try { const f = await API(`/mandates/${m.id}/fund`, { method: 'POST', body: { order_id: data.orderID } }); await refreshMandates(); renderMandateList();
-        el.innerHTML = `<div class="okbox">PayPal hold placed: ${usd(f.policy.budget)} · authorization <span class="mono">${esc(f.funding.authorization_id)}</span>. <a href="#errand" onclick="go('errand')">Send an errand →</a></div>`; }
-      catch (e) { el.innerHTML = `<div class="warnbox">${esc(e.message)}</div>`; }
+    createOrder: async (data, actions) => {
+      const h = await API(`/mandates/${m.id}/hold`, { method: 'POST' });
+      if (!h.client) return h.id;
+      // Pages build: the browser creates the AUTHORIZE order with the public client ID.
+      return actions.order.create({ intent: 'AUTHORIZE', purchase_units: [{ reference_id: h.reference_id, custom_id: h.reference_id, description: h.description, amount: { currency_code: 'USD', value: h.amount } }], application_context: { brand_name: 'Allowance', shipping_preference: 'NO_SHIPPING' } });
+    },
+    onApprove: async (data, actions) => {
+      try {
+        const body = { order_id: data.orderID };
+        // The SDK talks to PayPal through the button's iframe: call it before touching the DOM.
+        if (STATIC) { const d = await actions.order.authorize(); const a = d.purchase_units[0].payments.authorizations[0]; Object.assign(body, { authorization_id: a.id, expires: a.expiration_time }); }
+        const f = await API(`/mandates/${m.id}/fund`, { method: 'POST', body }); await refreshMandates();
+        // Redraw after onApprove returns, so the PayPal iframe can finish closing first.
+        setTimeout(() => { renderMandateList(); el.innerHTML = `<div class="okbox">PayPal hold placed: ${usd(f.policy.budget)} · authorization <span class="mono">${esc(f.funding.authorization_id)}</span>. <a href="#errand" onclick="go('errand')">Send an errand →</a></div>`; }, 600); }
+      catch (e) { setTimeout(() => { el.innerHTML = `<div class="warnbox">${esc(e.message)}</div>`; }, 600); }
     },
     onError: (e) => { el.insertAdjacentHTML('beforeend', `<div class="warnbox">${esc(e.message || e)}</div>`); },
   }).render('#ppb_' + m.id);
@@ -180,7 +202,13 @@ function viewErrand() {
     </div>
     <div class="card" id="eside"></div>
   </div>
-  <div style="margin-top:20px" class="trace" id="trace"></div>`;
+  <div class="row" style="margin-top:20px"><span class="kicker" style="margin:0">Replay a run</span><select id="pastruns" style="max-width:560px;flex:1"><option value="">Choose a past run…</option></select></div>
+  <div style="margin-top:12px" class="trace" id="trace"></div>`;
+  API('/runs').then((runs) => {
+    const sel = $('#pastruns'); if (!sel) return;
+    sel.insertAdjacentHTML('beforeend', runs.map((r) => `<option value="${r.id}">${new Date(r.created_at).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} · ${r.condition === 'gated' ? 'gate on' : 'no gate (what-if)'} · ${esc(r.task).slice(0, 60)}${r.recorded ? ' · recorded on PayPal sandbox' : ''}</option>`).join(''));
+    sel.onchange = () => sel.value && replayRun(sel.value);
+  }).catch(() => {});
   document.querySelectorAll('[data-e]').forEach((c) => c.onclick = () => { $('#etext').value = ERRANDS[c.dataset.e].text; });
   $('#go').onclick = startErrand;
   $('#emand') && ($('#emand').onchange = () => { S.current = $('#emand').value; renderSide(); });
@@ -196,6 +224,35 @@ function renderSide() {
     <div class="meter"><i style="width:${Math.min(100, (m.spent / m.policy.budget) * 100)}%"></i></div>
     <ul class="plain">${m.summary.map((s) => `<li>${esc(s)}</li>`).join('')}</ul>
     <div class="mono" style="margin-top:8px;color:var(--mute)">PayPal: ${esc(m.funding.mode)} ${esc(m.funding.authorization_id || m.funding.vault_id || '')}</div>`;
+}
+
+// Replays a past run's trace step by step, as it happened.
+async function replayRun(id) {
+  clearInterval(S.poll);
+  const d = await API(`/runs/${id}?since=0`);
+  const all = d.events.filter((e) => e.type !== 'thinking');
+  S.run = { ...d, events: [], status: 'running' };
+  $('#estat').textContent = 'replaying ' + id;
+  let i = 0;
+  S.poll = setInterval(() => {
+    if (i < all.length) { S.run.events.push(all[i++]); renderRun(S.run); window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }); return; }
+    clearInterval(S.poll); S.run.status = d.status; renderRun(S.run); $('#estat').textContent = 'replayed ' + id;
+  }, 380);
+}
+
+function modelModal() {
+  API('/llm').then((s) => {
+    $('#modal').innerHTML = `<div class="modal"><div class="card">
+      <div class="kicker">Model for this browser</div><h2>Use your own Gemini key</h2>
+      <p style="color:var(--ink2);font-size:14px">On GitHub Pages the agent calls the model straight from your browser. Your key is kept only in this browser's local storage and sent only to the model provider. Without a key, a deterministic, deliberately gullible scripted agent runs, which is handy for watching the gate catch every trap. Free keys: <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>.</p>
+      <label class="mono">API key</label><input id="llmKey" type="password" placeholder="${s.configured ? '•••••• (saved)' : 'AIza… or AQ.…'}">
+      <label class="mono" style="margin-top:8px;display:block">Model</label><input id="llmModel" value="${esc(s.model)}">
+      <label class="mono" style="margin-top:8px;display:block">OpenAI-compatible base URL (optional)</label><input id="llmBase" value="${esc(s.baseURL)}" placeholder="https://generativelanguage.googleapis.com/v1beta/openai/">
+      <div class="row" style="margin-top:12px"><button class="btn" id="llmSave">Save</button><button class="btn ghost" id="llmClear">Forget key</button><button class="btn ghost" id="llmX">Close</button></div></div></div>`;
+    $('#llmX').onclick = () => { $('#modal').innerHTML = ''; };
+    $('#llmClear').onclick = async () => { await API('/llm', { method: 'POST', body: {} }); location.reload(); };
+    $('#llmSave').onclick = async () => { const apiKey = $('#llmKey').value || (s.configured ? undefined : ''); if (apiKey === undefined) { $('#modal').innerHTML = ''; return; } await API('/llm', { method: 'POST', body: { apiKey, model: $('#llmModel').value, baseURL: $('#llmBase').value } }); location.reload(); };
+  });
 }
 
 async function startErrand() {
@@ -241,9 +298,9 @@ function renderRun(run) {
       return `<div class="ev ${v ? 'verdict-' + v : ''}"><div class="who"><b>propose cart</b>${esc(a.merchant)}${o ? `<br>${o.ref}` : ''}</div><div>
         <div class="lines">${(a.lines || []).map((l) => `${l.qty} × ${esc(l.sku)} @ ${usd(l.quoted_price)}`).join(' · ')}${a.payee ? ` · payee <b>${esc(a.payee)}</b>` : ''}</div>
         <div style="color:var(--ink2);font-size:13px">${esc(a.reason || '')}</div>
-        ${v ? `<div style="margin-top:6px"><span class="verdict ${v}">GATE: ${v.toUpperCase()}</span> ${o ? `· charged ${usd(o.total)} (catalog price)` : ''}</div>
+        ${v ? `<div style="margin-top:6px"><span class="verdict ${v}">GATE: ${v.toUpperCase()}</span> ${o ? (v === 'approve' ? `· charged ${usd(o.total)} (catalog price)` : v === 'escalate' ? `· checkout total ${usd(o.total)}, waiting for you` : `· catalog total ${usd(o.total)}, nothing paid`) : ''}</div>
         <div class="chips" style="margin-top:6px">${(o?.rules || []).map((x) => `<span class="chip ${x.severity === 'refuse' ? 'bad' : 'warn'}" title="${esc(x.message)}">${x.code}${x.detail ? ': ' + esc(x.detail) : ''}</span>`).join('')}</div>
-        ${o?.paypal?.capture_id ? `<div class="mono" style="margin-top:6px">PayPal capture ${esc(o.paypal.capture_id)} · ${esc(o.paypal.status)}</div>` : ''}
+        ${o?.paypal?.capture_id ? `<div class="mono" style="margin-top:6px">PayPal capture ${esc(o.paypal.capture_id)} · ${esc(o.paypal.status)}${simNote(o.paypal.capture_id)}</div>` : ''}
         ${v === 'escalate' ? `<div style="margin-top:6px"><a href="#asks" onclick="go('asks')">Waiting for you in Asks →</a></div>` : ''}` : '<div class="thinking">gate checking</div>'}
       </div></div>`;
     }
@@ -292,8 +349,18 @@ async function mountAskButtons(a) {
   const paypal = await sdk('capture');
   paypal.Buttons({
     style: { layout: 'vertical', color: 'gold', shape: 'rect', label: 'pay' },
-    createOrder: async () => (await API(`/asks/${a.id}/order`, { method: 'POST' })).id,
-    onApprove: async (data) => { box.innerHTML = '<div class="mono">capturing via PayPal Agent Toolkit…</div>'; await API(`/asks/${a.id}/approved`, { method: 'POST', body: { order_id: data.orderID } }); refreshAskCount(); viewAsks(); },
+    createOrder: async (data, actions) => {
+      const o = await API(`/asks/${a.id}/order`, { method: 'POST' });
+      if (!o.client) return o.id;
+      const items = o.lines.map((l) => ({ name: l.name.slice(0, 127), sku: l.sku, quantity: String(l.qty), unit_amount: { currency_code: 'USD', value: l.unit_price.toFixed(2) } }));
+      return actions.order.create({ intent: 'CAPTURE', purchase_units: [{ reference_id: o.reference_id, description: `Allowance order at ${o.merchant_name}`.slice(0, 127), amount: { currency_code: 'USD', value: o.total.toFixed(2), breakdown: { item_total: { currency_code: 'USD', value: o.total.toFixed(2) } } }, items }], application_context: { brand_name: 'Allowance', shipping_preference: 'NO_SHIPPING' } });
+    },
+    onApprove: async (data, actions) => {
+      const body = { order_id: data.orderID };
+      if (STATIC) { const d = await actions.order.capture(); const c = d.purchase_units[0].payments.captures[0]; Object.assign(body, { capture_id: c.id, status: c.status }); }
+      await API(`/asks/${a.id}/approved`, { method: 'POST', body }); refreshAskCount();
+      setTimeout(viewAsks, 600);
+    },
     onError: (e) => box.insertAdjacentHTML('beforeend', `<div class="warnbox">${esc(e.message || e)}</div>`),
   }).render('#ppa_' + a.id);
 }
@@ -370,7 +437,7 @@ async function viewEval() {
 // ---------- 06 Shops ----------
 function viewShops() {
   $('#main').innerHTML = `<h1>The shops your agent browses.</h1><p class="lede">Five fictional sandbox merchants. Some pages carry what real agents will meet: injected instructions in reviews, hidden text, a decoy "per ream" price, a sale price that changes at checkout, and a request to pay a different account.</p>
-  <div class="shops">${S.config.merchants.map((m) => `<a class="card" style="text-decoration:none;color:inherit" href="/shop/${m.id}" target="_blank"><div class="kicker">${m.category.replace('_', ' ')}</div><h2>${esc(m.name)}</h2><div style="color:var(--ink2)">${esc(m.blurb)}</div><div class="mono" style="margin-top:8px;color:var(--mute)">payee ${esc(m.payee)}</div></a>`).join('')}</div>`;
+  <div class="shops">${S.config.merchants.map((m) => `<a class="card" style="text-decoration:none;color:inherit" href="${STATIC ? `shop/${m.id}.html` : `/shop/${m.id}`}" target="_blank"><div class="kicker">${m.category.replace('_', ' ')}</div><h2>${esc(m.name)}</h2><div style="color:var(--ink2)">${esc(m.blurb)}</div><div class="mono" style="margin-top:8px;color:var(--mute)">payee ${esc(m.payee)}</div></a>`).join('')}</div>`;
 }
 
 window.go = go;
