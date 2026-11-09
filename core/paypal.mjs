@@ -43,16 +43,22 @@ const money = (v) => ({ currency_code: 'USD', value: Number(v).toFixed(2) });
 // vault:     owner saves PayPal once (Vault v3); each approved order charges the vault_id
 // hold:      owner approves one PayPal authorization for the budget; each approved order is a partial capture
 // simulated: no PayPal credentials; ids are clearly marked SIM-
-let modeCache = null;
+// Default is hold: the budget is reserved up front, so PayPal's authorization
+// ceiling is a second cap independent of the gate. Set PAYMENT_MODE=vault to use Vault.
 export async function paymentMode() {
   if (process.env.PAYMENT_MODE) return process.env.PAYMENT_MODE;
-  if (!paypalConfigured()) return 'simulated';
-  if (modeCache) return modeCache;
+  return paypalConfigured() ? 'hold' : 'simulated';
+}
+
+let vaultCache = null;
+export async function vaultAvailable() {
+  if (!paypalConfigured()) return false;
+  if (vaultCache !== null) return vaultCache;
   try {
     await api('POST', '/v3/vault/setup-tokens', { payment_source: { paypal: { usage_type: 'MERCHANT', experience_context: { return_url: 'https://example.com/r', cancel_url: 'https://example.com/c' } } } }, { requestId: randomUUID() });
-    modeCache = 'vault';
-  } catch { modeCache = 'hold'; }
-  return modeCache;
+    vaultCache = true;
+  } catch { vaultCache = false; }
+  return vaultCache;
 }
 
 // ---- Mandate funding: authorization hold ---------------------------------

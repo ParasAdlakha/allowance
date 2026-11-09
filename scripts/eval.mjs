@@ -116,4 +116,4 @@ const out = {
 };
 const file = join(ROOT, 'data', ONLY.length ? 'eval-partial.json' : 'eval-results.json');
 writeFileSync(file, JSON.stringify(out, null, 1));
-console.log('\n' + out.summary + '\nwrote ' + file);
+console.log('\n' + out.summary + '\nwrote data/' + file.split(/[\\/]/).pop());

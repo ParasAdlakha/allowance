@@ -316,22 +316,23 @@ async function viewLedger() {
   const vColor = { approve: 'ok', escalate: 'warn', refuse: 'bad' };
   const grid = agGrid.createGrid($('#grid'), {
     rowData: orders,
+    rowHeight: 46,
     defaultColDef: { sortable: true, filter: true, resizable: true },
     columnDefs: [
-      { field: 'created_at', headerName: 'Time', width: 110, valueFormatter: (p) => new Date(p.value).toLocaleTimeString(), sort: 'desc' },
-      { field: 'ref', width: 130, cellClass: 'mono' },
-      { field: 'merchant_name', headerName: 'Merchant', width: 170 },
-      { headerName: 'Items', flex: 1, minWidth: 200, valueGetter: (p) => p.data.lines.map((l) => `${l.qty}× ${l.name}`).join(', ') },
-      { field: 'total', width: 95, valueFormatter: (p) => usd(p.value), type: 'numericColumn' },
-      { field: 'verdict', headerName: 'Gate', width: 105, cellRenderer: (p) => `<span class="chip ${vColor[p.value]}">${p.value}</span>` },
-      { headerName: 'Rules', width: 200, valueGetter: (p) => p.data.rules.map((r) => r.code).join(', ') },
-      { field: 'status', width: 130 },
-      { headerName: 'PayPal capture', width: 170, cellClass: 'mono', valueGetter: (p) => p.data.paypal?.capture_id || '' },
+      { field: 'created_at', headerName: 'Time', width: 100, valueFormatter: (p) => new Date(p.value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), sort: 'desc' },
+      { field: 'merchant_name', headerName: 'Merchant', width: 150 },
+      { headerName: 'Items', flex: 1, minWidth: 170, valueGetter: (p) => p.data.lines.map((l) => `${l.qty}× ${l.name}`).join(', ') },
+      { field: 'total', width: 90, valueFormatter: (p) => usd(p.value), type: 'numericColumn' },
+      { field: 'verdict', headerName: 'Gate', width: 108, cellRenderer: (p) => `<span class="chip ${vColor[p.value]}">${p.value}</span>` },
+      { field: 'status', width: 128, valueFormatter: (p) => (p.value === 'paid' && p.data.approved_by === 'owner' ? 'paid (you approved)' : String(p.value).replace('_', ' ')) },
+      { headerName: 'PayPal capture', width: 175, cellClass: 'mono', valueGetter: (p) => p.data.paypal?.capture_id || '' },
+      { headerName: 'Rules', width: 180, valueGetter: (p) => p.data.rules.map((r) => r.code).join(', ') },
+      { field: 'ref', width: 125, cellClass: 'mono' },
       { headerName: 'Tracking (PayPal)', width: 190, cellClass: 'mono', valueGetter: (p) => p.data.shipment ? p.data.shipment.tracking_number + (p.data.shipment.paypal ? ' ✓' : '') : '' },
       { headerName: 'Refunded', width: 100, valueGetter: (p) => (p.data.refunds || []).reduce((s, r) => s + r.amount, 0), valueFormatter: (p) => (p.value ? usd(p.value) : '') },
-      { headerName: '', width: 140, pinned: 'right', cellRenderer: (p) => p.data.status === 'paid' ? `<button class="btn small ghost" data-ref="${p.data.ref}">Report problem</button>` : '' },
+      { headerName: '', width: 150, pinned: 'right', cellRenderer: (p) => p.data.status === 'paid' ? `<button class="btn small ghost" style="padding:3px 10px;line-height:1.4" data-report="${p.data.ref}">Report problem</button>` : '' },
     ],
-    onCellClicked: (e) => { const b = e.event.target.closest('[data-ref]'); if (b) aftercareModal(e.data); },
+    onCellClicked: (e) => { const b = e.event.target.closest("[data-report]"); if (b) aftercareModal(e.data); },
   });
   S.grid = grid;
 }
@@ -339,7 +340,7 @@ async function viewLedger() {
 function aftercareModal(o) {
   $('#modal').innerHTML = `<div class="modal"><div class="card">
     <div class="kicker">Aftercare · ${o.ref}</div><h2>What went wrong with ${esc(o.merchant_name)} (${usd(o.total)})?</h2>
-    <textarea id="comp">One box of pens arrived crushed and leaking.</textarea>
+    <textarea id="comp">${esc((o.lines[0]?.qty > 1 ? "One " : "The ") + (o.lines[0]?.name || "item") + " arrived damaged and unusable.")}</textarea>
     <div class="row" style="margin-top:10px"><button class="btn" id="acgo">Ask agent to sort it out</button><button class="btn ghost" id="acx">Close</button></div>
     <div id="acout" style="margin-top:10px"></div></div></div>`;
   $('#acx').onclick = () => { $('#modal').innerHTML = ''; viewLedger(); };

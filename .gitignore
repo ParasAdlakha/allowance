@@ -8,4 +8,5 @@ scripts/media/node_modules/
 scripts/media/*.png
 data/eval-log-*.txt
 data/eval-partial.json
-.claude/
+*.log
+scripts/media/rec*/

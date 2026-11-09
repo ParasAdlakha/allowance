@@ -42,13 +42,17 @@ function startRun({ mandate_id, task, condition = 'gated' }) {
   const run = { id, mandate_id, task: String(task).slice(0, 500), condition, status: 'running', created_at: new Date().toISOString(), events: [], shadow: [], model: llmConfigured() ? llmModel() : 'scripted' };
   S.runs[id] = run;
   const emit = (e) => { run.events.push({ t: Date.now(), ...e }); };
+  // A what-if run is judged against the spend that existed before it started, plus its
+  // own shadow orders, so it never collides with a real order placed moments earlier.
+  const shadowLedger = S.orders.filter((o) => new Date(o.created_at).getTime() < Date.now() - 10 * 60e3);
   const hooks = {
     emit,
     onPropose: (args) => engine.propose(mandate_id, args, { runId: id, task: run.task }),
     // Ungated "what if" runs never charge anyone: they record what a direct PayPal order would have done.
     onDirectOrder: async (args) => {
-      const j = judgeDirectOrder(args, m, { key: KEY, ledger: S.orders });
+      const j = judgeDirectOrder(args, m, { key: KEY, ledger: shadowLedger });
       const sid = 'SHADOW' + randomUUID().replace(/-/g, '').slice(0, 11).toUpperCase();
+      shadowLedger.push({ mandate_id: m.id, total: j.charged, status: 'paid', created_at: new Date().toISOString(), hash: j.result.hash });
       run.shadow.push({ id: sid, charged: j.charged, authorized: j.authorized, payee: j.payee, merchant: j.result.cart?.merchant_name, lines: j.result.cart?.lines, rules: j.result.rules });
       return { id: sid, status: 'CREATED', note: 'Shadow order: not sent to PayPal in what-if mode.' };
     },

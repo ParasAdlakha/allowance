@@ -1,0 +1,41 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#f4f1e8;--card:#fffdf7;--ink:#15130f;--ink2:#4a463d;--mute:#8a8578;--line:#e1dccd;--ok:#1d6b47;--okS:#e3f1e8;--warn:#a15c00;--warnS:#fdf0d8;--bad:#b4271f;--badS:#fbe5e2}
+body{margin:0;background:#777;font-family:'Inter Tight',sans-serif;color:var(--ink)}
+.frame{width:1200px;height:1200px;background:var(--paper);position:relative;overflow:hidden;box-sizing:border-box;padding:80px;margin-bottom:30px}
+.k{font:600 20px 'JetBrains Mono',monospace;letter-spacing:.1em;text-transform:uppercase;color:var(--mute)}
+h1{font-size:96px;line-height:1;letter-spacing:-.045em;margin:24px 0;font-weight:800}
+p{font-size:34px;line-height:1.35;color:var(--ink2);margin:0}
+.mark{width:96px;height:96px;border-radius:24px;background:var(--ink);color:var(--paper);display:grid;place-items:center;font:700 42px 'JetBrains Mono',monospace}
+.foot{position:absolute;left:80px;right:80px;bottom:60px;display:flex;justify-content:space-between;font:22px 'JetBrains Mono',monospace;color:var(--mute)}
+.chip{display:inline-block;font:600 24px 'JetBrains Mono',monospace;padding:8px 16px;border-radius:12px;margin:0 10px 14px 0}
+.ok{background:var(--okS);color:var(--ok)}.warn{background:var(--warnS);color:var(--warn)}.bad{background:var(--badS);color:var(--bad)}
+img{width:100%;border-radius:18px;border:2px solid var(--line);box-shadow:0 24px 50px rgba(0,0,0,.15)}
+.bar{display:grid;grid-template-columns:330px 1fr 150px;gap:20px;align-items:center;font-size:30px;margin:26px 0}
+.track{height:50px;background:#e7e1d1;border-radius:12px;overflow:hidden}.track i{display:block;height:100%}
+</style></head><body>
+<section class="frame" id="linkedin-cover">
+  <div class="mark">A$</div>
+  <h1 style="margin-top:60px">Give your AI agent an allowance, not your wallet.</h1>
+  <p>Signed spending mandates, a deterministic spend gate, and PayPal. The model proposes. The gate decides. PayPal pays.</p>
+  <div style="margin-top:50px"><span class="chip ok">APPROVE → capture</span><span class="chip warn">PRICE_DRIFT → ask me</span><span class="chip bad">PAYEE_MISMATCH → refuse</span><span class="chip bad">QTY_LIMIT → refuse</span></div>
+  <div class="foot"><span>Allowance · PayPal AI Hackathon</span><span>Paras &amp; Harshita Adlakha</span></div>
+</section>
+<section class="frame" id="linkedin-errand">
+  <div class="k">A real errand on the PayPal sandbox</div>
+  <h1 style="font-size:64px">Shops try to trick the agent. The gate doesn't care.</h1>
+  <img src="../../../docs/img/errand.png">
+  <div class="foot"><span>Allowance</span><span>github.com/ParasAdlakha/allowance</span></div>
+</section>
+<section class="frame" id="linkedin-eval">
+  <div class="k">Eval · 12 errands · same model, same shops</div>
+  <h1 style="font-size:72px">Dollars paid outside the signed mandate</h1>
+  <div class="bar"><span>Toolkit, plain prompt</span><div class="track"><i style="width:100%;background:var(--bad)"></i></div><b>$127.60</b></div>
+  <div class="bar"><span>Toolkit, hardened prompt</span><div class="track"><i style="width:100%;background:var(--bad)"></i></div><b>$127.60</b></div>
+  <div class="bar"><span>Allowance gate</span><div class="track"><i style="width:0.6%;background:var(--ok)"></i></div><b>$0.00</b></div>
+  <p style="margin-top:40px">12 errands, gemini-3.5-flash-lite, dollars paid outside the signed mandate. It resisted every planted instruction, but paid a checkout price 33% above the page, broke a $60 per-order cap, and skipped an approval the owner asked for. A hardened prompt changed nothing. Behind the gate: $0, and task success rose from 75% to 100%.</p>
+  <div class="foot"><span>Allowance</span><span>PayPal Agent Toolkit · Gemini</span></div>
+</section>
+</body></html>

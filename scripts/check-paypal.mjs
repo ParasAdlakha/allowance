@@ -5,5 +5,6 @@ const pp = await import('../core/paypal.mjs');
 if (!pp.paypalConfigured()) { console.log('No PayPal credentials: Allowance will run in simulated mode.'); process.exit(0); }
 const o = await pp.api('POST', '/v2/checkout/orders', { intent: 'AUTHORIZE', purchase_units: [{ amount: { currency_code: 'USD', value: '1.00' } }] });
 console.log('Orders v2 OK:', o.id, o.status);
-console.log('Funding mode:', await pp.paymentMode(), '(vault = Vault v3 enabled; hold = authorization + partial captures)');
+console.log('Funding mode:', await pp.paymentMode(), '(hold = authorization + partial captures; set PAYMENT_MODE=vault to use Vault)');
+console.log('Vault v3 available on this app:', await pp.vaultAvailable());
 console.log('Agent Toolkit tools available:', pp.toolkitTools().map((t) => t.function.name).join(', '));
