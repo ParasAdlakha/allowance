@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Allowance market brief</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#f4f1e8;--card:#fffdf7;--ink:#15130f;--ink2:#4a463d;--mute:#8a8578;--line:#e1dccd;--acc:#1d6b47;--bad:#b4271f;--warn:#a15c00}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 'Inter Tight',system-ui,sans-serif}
+main{max-width:880px;margin:0 auto;padding:40px 18px 70px}
+h1{font-size:36px;letter-spacing:-.03em;line-height:1.1;margin:0 0 6px}h2{font-size:21px;margin:34px 0 10px;letter-spacing:-.01em}
+.k{font:12px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.lede{color:var(--ink2);font-size:18px}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:18px 0}
+.c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px}
+.c b{display:block;font-size:26px;letter-spacing:-.02em}.c span{font-size:13px;color:var(--ink2)}
+table{width:100%;border-collapse:collapse;font-size:14.5px;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}th{font:11px 'JetBrains Mono',monospace;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+.src{font-size:13px;color:var(--ink2)}a{color:#1f4fb4}
+@media(max-width:700px){.grid{grid-template-columns:1fr}h1{font-size:28px}}
+</style></head><body><main>
+<div class="k">Allowance · market brief · November 2026</div>
+<h1>Agents will check out. Who sets their limits?</h1>
+<p class="lede">Agentic commerce is moving from demos to payment rails. The rails are ready; the trust layer between a person's intent and an agent's payment is not.</p>
+
+<div class="grid">
+  <div class="c"><b>$190–385B</b><span>US e-commerce executed by agents by 2030, base to bull case (Morgan Stanley, Dec 2025)</span></div>
+  <div class="c"><b>$3–5T</b><span>global retail revenue orchestrated by agents by 2030; ~$1T in US B2C (McKinsey, Oct 2025)</span></div>
+  <div class="c"><b>15–25%</b><span>of US e-commerce agent-driven by 2030 (Bain, Dec 2025)</span></div>
+</div>
+<p class="src">Forecasts differ about 35× because definitions differ: "executed by an agent" (Morgan Stanley) versus "orchestrated by an agent" (McKinsey). All point the same way.</p>
+
+<h2>The rails exist</h2>
+<table>
+<tr><th>Player</th><th>What shipped</th><th>What it leaves open</th></tr>
+<tr><td>PayPal</td><td>Agentic Commerce Services (Oct 2025): <b>Agent Ready</b> (agent checkout with buyer protection) and <b>Store Sync</b> (catalogs into Copilot, Perplexity, and other AI channels; Cymbio acquisition, Feb 2026). <b>Agent Toolkit</b> and MCP server for developers. WebMCP for Store Sync merchants.</td><td>Tools execute what the agent asks. Spending policy is the integrator's job.</td></tr>
+<tr><td>Google + 60 partners incl. PayPal</td><td><b>AP2</b>: signed Intent, Cart and Payment Mandates for human-present and human-absent purchases.</td><td>A protocol, not an enforcement engine: someone must check each cart against the intent.</td></tr>
+<tr><td>Card networks</td><td>Visa Intelligent Commerce, Mastercard Agent Pay: agent tokens and credentials.</td><td>Network-level controls are coarse (merchant category, amount), not "3 of one item from these two shops".</td></tr>
+<tr><td>OpenAI / Stripe</td><td>Agentic Commerce Protocol, Instant Checkout in ChatGPT.</td><td>Single-purchase, human-present flows.</td></tr>
+</table>
+
+<h2>The gap: agents are easy to steer</h2>
+<ul>
+<li>Microsoft's <i>Magentic Marketplace</i>: customer agents accepted the <b>first proposal 80–100%</b> of the time, giving 10–30× advantage to speed over quality, and some models could be manipulated into paying malicious sellers.</li>
+<li><i>InjecAgent</i> (806 citations): tool agents follow instructions planted in content; ReAct GPT-4 did so in <b>24%</b> of cases, about twice that with a hacking prompt.</li>
+<li>Defences inside the prompt help but are probabilistic; execution-time policy gates are deterministic. NetInjectBench (2026): a metadata-aware gate reached <b>0/240</b> unsafe actions at 99% usefulness, versus 10–26% for prompt-level defences.</li>
+</ul>
+
+<h2>Who needs Allowance first</h2>
+<table>
+<tr><th>Segment</th><th>Job to be done</th><th>Why now</th></tr>
+<tr><td>Small offices and teams (US: ~33M small businesses)</td><td>Routine restocks without a procurement system or a shared card</td><td>Agents can already browse and buy; finance needs limits and an audit trail</td></tr>
+<tr><td>Households and caregivers</td><td>Groceries, refills, school supplies within a budget</td><td>The "allowance" mental model already exists</td></tr>
+<tr><td>Platforms embedding the PayPal Agent Toolkit</td><td>A policy layer they don't have to build</td><td>Liability for agent-made purchases lands on the platform</td></tr>
+</table>
+
+<h2>Business model</h2>
+<p>Free for individuals. Teams: per-seat or a small basis-point fee on gated spend. Platforms: an SDK/API for the gate (policy-as-a-service around the PayPal Agent Toolkit). PayPal benefits directly: more agent volume through Agent Ready, with fewer disputes because purchases are bounded and auditable.</p>
+
+<h2>Competitive position</h2>
+<p>Corporate cards (Ramp, Brex) control spend <i>after</i> the card is presented, by merchant category and amount. Allowance controls it <i>before</i> payment, per item, per merchant, per mandate, with the agent's reasoning and the checkout price side by side. It is also built on PayPal's own primitives (authorization holds, Vault, Agent Toolkit), so there's no new card to issue.</p>
+
+<h2>Sources</h2>
+<ol class="src">
+<li>Morgan Stanley Research, agentic commerce outlook, Dec 2025 (via PAZ.ai and Stellagent summaries).</li>
+<li>McKinsey, <i>The agentic commerce opportunity</i>, Oct 2025.</li>
+<li>Bain & Company, agentic commerce estimates, Dec 2025.</li>
+<li><a href="https://www.prnewswire.com/news-releases/paypal-launches-agentic-commerce-services-to-power-ai-driven-shopping-302596548.html">PayPal launches Agentic Commerce Services</a>, PR Newswire, Oct 2025; <a href="https://developer.paypal.com/community/blog/WebMCP_PayPal_Agent_Ready/">PayPal Developer blog: WebMCP</a>.</li>
+<li>Google, Agent Payments Protocol (AP2), Sep 2025.</li>
+<li>Bansal et al., <a href="https://arxiv.org/abs/2510.25779">Magentic Marketplace</a>, Microsoft Research, 2025.</li>
+<li>Zhan et al., <a href="https://arxiv.org/abs/2403.02691">InjecAgent</a>, 2024.</li>
+<li>Shayoni et al., NetInjectBench, 2026.</li>
+</ol>
+<p class="src">Paras Adlakha and Harshita Adlakha · <a href="index.html">Allowance</a></p>
+</main></body></html>

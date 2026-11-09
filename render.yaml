@@ -1,0 +1,26 @@
+# One-click deploy: https://render.com/deploy?repo=https://github.com/ParasAdlakha/allowance
+services:
+  - type: web
+    name: allowance
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: PAYPAL_ENV
+        value: sandbox
+      - key: PAYPAL_CLIENT_ID
+        sync: false
+      - key: PAYPAL_CLIENT_SECRET
+        sync: false
+      - key: LLM_API_KEY
+        sync: false
+      - key: LLM_BASE_URL
+        value: https://generativelanguage.googleapis.com/v1beta/openai/
+      - key: LLM_MODEL
+        value: gemini-3.5-flash
+      - key: LLM_RPM
+        value: "5"
+      - key: MANDATE_SIGNING_KEY
+        generateValue: true

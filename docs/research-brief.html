@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Allowance research brief</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--paper:#f4f1e8;--card:#fffdf7;--ink:#15130f;--ink2:#4a463d;--mute:#8a8578;--line:#e1dccd}
+body{margin:0;background:var(--paper);color:var(--ink);font:16px/1.6 'Inter Tight',system-ui,sans-serif}
+main{max-width:880px;margin:0 auto;padding:40px 18px 70px}
+h1{font-size:34px;letter-spacing:-.03em;line-height:1.1;margin:0 0 6px}h2{font-size:20px;margin:30px 0 8px}
+.k{font:12px 'JetBrains Mono',monospace;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.lede{color:var(--ink2);font-size:18px}
+.c{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin:10px 0}
+.c b{display:block}.c .d{color:var(--ink2);font-size:14.5px}.c .u{font-size:14.5px;margin-top:6px}
+code{font:13px 'JetBrains Mono',monospace;background:#ebe6d8;padding:1px 5px;border-radius:4px}
+a{color:#1f4fb4}
+</style></head><body><main>
+<div class="k">Allowance · research brief</div>
+<h1>Why a gate, not a better prompt</h1>
+<p class="lede">Each design choice in Allowance maps to a finding in the literature on tool-using agents, agent markets and agent payments.</p>
+
+<h2>1. Agents in markets take the first offer and can be steered</h2>
+<div class="c"><b>Bansal et al. (2025). Magentic Marketplace: An Open-Source Environment for Studying Agentic Markets. Microsoft Research / ASU. arXiv:2510.25779</b>
+<div class="d">Two-sided simulated market (100 customer agents, 300 business agents). Frontier models approach optimal welfare only with ideal search; all show severe first-proposal bias (10–30× advantage for speed over quality); several models were manipulated into paying malicious agents.</div>
+<div class="u"><b>In Allowance:</b> search ranks the loud, off-list "Bulkr" listing first on purpose. The gate's merchant allowlist and payee registry make first-result bias harmless: the cart is refused with <code>MERCHANT_NOT_ALLOWED</code> or <code>PAYEE_MISMATCH</code>, and the agent is told why.</div></div>
+
+<h2>2. Content the agent reads can carry instructions</h2>
+<div class="c"><b>Zhan et al. (2024). InjecAgent: Benchmarking Indirect Prompt Injections in Tool-Integrated LLM Agents. Findings of ACL 2024. arXiv:2403.02691 (806 citations)</b>
+<div class="d">1,054 cases, 17 user tools, 62 attacker tools, 30 agents. ReAct-prompted GPT-4 was vulnerable 24% of the time, nearly doubling with a reinforced "hacking" prompt.</div>
+<div class="u"><b>In Allowance:</b> product pages carry four injection styles (a review addressed to AI agents, hidden HTML, an upsell "required for delivery", and a payee redirect). Page text is labelled untrusted in the trace and highlighted in the UI.</div></div>
+<div class="c"><b>Debenedetti et al. (2024). AgentDojo. NeurIPS Datasets & Benchmarks.</b>
+<div class="d">Dynamic benchmark of injection attacks and defences across banking, travel and workspace tasks; showed defences trade utility for security.</div>
+<div class="u"><b>In Allowance:</b> the eval reports utility (task success) next to security (dollars outside the mandate), so a gate that refused everything would score badly.</div></div>
+
+<h2>3. Prompt-level defences are probabilistic; execution-time gates are not</h2>
+<div class="c"><b>Shayoni et al. (2026). NetInjectBench. arXiv.</b>
+<div class="d">Naive execution reached 82.5% unsafe tool actions. Prompt safety, self-reminder, spotlighting and an LLM judge cut that to 25.6%, 21.7%, 18.3% and 10%. A static allowlist hit 5% but blocked all approved changes. A metadata-aware policy gate reached 0/240 unsafe at 99.2% usefulness.</div>
+<div class="u"><b>In Allowance:</b> the "rules" condition is the hardened-prompt defence; the "gated" condition is the execution-time gate. Approved actions still flow (partial captures) and borderline ones escalate to the owner instead of being blocked.</div></div>
+<div class="c"><b>Khan et al. (2026). Evaluating Indirect Prompt Injection Defenses in Tool-Using LLM Agents. Computers.</b>
+<div class="d">On AgentDojo banking, raw attack success varied by model (0/288 to 11/288); defences lowered attack success but also benign utility, and run-to-run variance was large.</div>
+<div class="u"><b>In Allowance:</b> we report per-scenario results with the model and date, and say plainly when a strong model already resists an attack. The gate's value is that it doesn't depend on which model is behind it.</div></div>
+
+<h2>4. Mandates: sign the intent, verify the cart</h2>
+<div class="c"><b>Google et al. (2025). Agent Payments Protocol (AP2).</b>
+<div class="d">Signed Intent Mandates bound what an agent may do while the user is absent; Cart Mandates fix items and price; Payment Mandates tell networks an agent initiated the payment. Developed with 60+ organisations including PayPal.</div>
+<div class="u"><b>In Allowance:</b> the signed mandate is the Intent Mandate, the gate's re-priced cart is the Cart Mandate, and the PayPal capture carries <code>invoice_id</code> and <code>soft_descriptor: ALLOWANCE</code> as its payment-side marker. Mapping to the AP2 wire format is next.</div></div>
+
+<h2>5. Models draft rules too loosely</h2>
+<div class="c"><b>Observed in this project.</b>
+<div class="d">Asked to compile "under $120 a month, ask me above $40, never more than 3 of one thing" into JSON, Gemini repeatedly set <code>allow_recurring: true</code> although the text never mentioned subscriptions.</div>
+<div class="u"><b>In Allowance:</b> <code>crossCheck()</code> compares the model's draft with a literal parse of the owner's words, reverts any loosened permission and shows a warning before signing. The model drafts, code checks, the human signs.</div></div>
+
+<p style="color:var(--mute);font-size:14px">Paras Adlakha and Harshita Adlakha · <a href="index.html">Allowance</a> · <a href="market-brief.html">Market brief</a></p>
+</main></body></html>

@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.local
+*.local.*
+data/runtime/
+scripts/media/rec/
+scripts/media/node_modules/
+scripts/media/*.png
+data/eval-log-*.txt
+data/eval-partial.json
+.claude/
